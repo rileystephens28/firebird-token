@@ -39,14 +39,17 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 		uint256 initialSupply,
 		address _marketingWallet,
 		address _oracleWallet,
+		address _uniswapV2Router,
+		address _linkToken,
 		address _oracle,
 		bytes32 _jobId,
 		uint256 _fee
-	) ERC20("Firebird", "FBRD") TwitterClient(_oracle, _jobId, _fee) {
+	)
+		ERC20("Firebird", "FBRD")
+		TwitterClient(_linkToken, _oracle, _jobId, _fee)
+	{
 		// Configure Uniswap router and token pair
-		uniswapV2Router = IUniswapV2Router02(
-			0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
-		);
+		uniswapV2Router = IUniswapV2Router02(_uniswapV2Router);
 		uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(
 			address(this),
 			uniswapV2Router.WETH()
@@ -68,7 +71,7 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	/**
 	 * @dev Callback function for Chainlink oracle to update tweet count
 	 */
-	function onFulfill(uint256 _tweetCount) internal {
+	function _onFulfill(uint256 _tweetCount) internal override {
 		if (_tweetCount > 0) {
 			uint256 burnAmount = _tweetCount > MAX_BURN_LIMIT
 				? MAX_BURN_LIMIT
