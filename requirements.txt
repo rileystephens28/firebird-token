@@ -1,0 +1,31 @@
+The token will work in the following way:
+
+-Token will have fixed starting supply
+-Utilizes chainlink oracle to query Twitter API to find how many times "target phrase" was tweeted in a day on Twitter
+-Tallies the number of daily tweets with target phrase and returns value to smart contract via chainlink oracle
+-Takes that tweet tally and triggers a burn of tokens equal in quantity to the tweet tally
+
+The token will need the following mechanisms:
+
+-A way to query the Twitter API via Chainlink
+-A way to tally the number of tweets containing "target phrase"
+-A way to return this tally number to the smart contract
+-A way to burn a number of tokens equal in quantity to the tweet tally.
+-A way to fund the chainlink oracle through buy/sell tax
+-A max burn limit that caps the max number of tokens burned in one day to 1% of total supply
+-Also, the contract will need code that makes ownership renounceable
+-Token will need to have code that makes it tradeable on uniswap/can have a liquidity pool made for it.
+
+In other words, everyday, this smart contract will count how many tweets were tweeted containing a specific phrase, it will then burn an amount of tokens equal in quantity to the number of tweets containing the target phrase that were tweeted that day. It will do this every day.
+
+The dev who takes on this project should be very experienced in making erc20 smart contracts utilizing chainlink functionality, and know how to integrate chainlink with the Twitter API.
+
+Token Details:
+Name: "Firebird"
+Supply: 10,000,000
+Ticker: $FBRD
+Burn limit: 1% supply per day max burn
+Burn rate: 1:1 FBRD:Tweet
+Target Phrase: "firebirdistheword.com"
+Buy tax: 4% (2% to marketing, 2% to LINK conversion for oracle fees)
+Sell tax: 4% (2% back to liquidity, 2% reflection back to holders)
