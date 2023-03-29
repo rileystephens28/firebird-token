@@ -1,13 +1,15 @@
 {
   "overrides": [
     {
-      "files": "*.sol",
+      "files": ["*.sol", "test/**/*.ts"],
       "options": {
         "tabWidth": 4,
         "useTabs": true,
         "singleQuote": false,
         "bracketSpacing": true,
-        "explicitTypes": "always"
+        "explicitTypes": "always",
+        "semi": true,
+        "trailingComma": "none"
       }
     }
   ]
