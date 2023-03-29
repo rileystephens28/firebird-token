@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -13,12 +13,9 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	uint256 public constant MAX_BURN_LIMIT = 100000; // 1% of total supply
 
 	// Tax Percentages
-	// uint256 public immutable buyTaxPercentage = 40;
-	// uint256 public immutable sellTaxPercentage = 40;
-	uint256 public immutable marketingFee = 20;
-	uint256 public immutable liquidityFee = 20;
-	uint256 public immutable oracleFee = 20;
-	uint256 public immutable reflectionFee = 20;
+	uint256 public immutable marketingFee = 10;
+	uint256 public immutable liquidityFee = 10;
+	uint256 public immutable oracleFee = 10;
 
 	// Tax Wallets
 	address public marketingWallet;
@@ -134,10 +131,7 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 
 		uint256 finalTransferAmount = _amount;
 		if (takeFee) {
-			uint256 totalFeesPercent = marketingFee +
-				liquidityFee +
-				oracleFee +
-				reflectionFee;
+			uint256 totalFeesPercent = marketingFee + liquidityFee + oracleFee;
 			uint256 fees = (_amount * totalFeesPercent) / 1000;
 			finalTransferAmount = _amount - fees;
 			super._transfer(_from, address(this), fees);
@@ -147,19 +141,28 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	}
 
 	function swapAndSendFees() private lockSwap {
-		uint256 contractBalance = balanceOf(address(this));
-		require(contractBalance > _tokenThreshold);
-		uint256 quarterBalance = contractBalance / 4;
+		uint256 contractTokenBalance = balanceOf(address(this));
+		require(contractTokenBalance > _tokenThreshold);
+		uint256 thirdTokenBalance = contractTokenBalance / 3;
 
-		//Send out fees
-		// Swap a 1/4 of tokens for LINK
-		swapTokensForLink(quarterBalance);
-		// Send to oracle wallet
+		// Swap a 1/3 of tokens for LINK and send to oracle wallet
+		swapTokensForLink(thirdTokenBalance);
+		IERC20 link = IERC20(getLinkAddress());
+		uint256 linkBalance = link.balanceOf(address(this));
+		link.transfer(oracleWallet, linkBalance);
+
+		contractTokenBalance -= thirdTokenBalance;
 
 		// Swap 3/4 tokens to ETH
-		swapTokensForEth(quarterBalance * 3);
-		// Send to marketing, liquidity, and reflection wallet
-		// payable(marketingWallet).transfer();
+		uint256 tokensToSwapToEth = (contractTokenBalance / 4) * 3;
+		swapTokensForEth(tokensToSwapToEth);
+
+		// Send to 2/3 of ETH to marketing wallet
+		uint256 marketingEthToTransfer = (address(this).balance / 3) * 2;
+		payable(marketingWallet).transfer(marketingEthToTransfer);
+
+		// Add remaining token and ETH balance to uniswap liquidity
+		addLiquidity(balanceOf(address(this)), address(this).balance);
 	}
 
 	/**
@@ -201,6 +204,24 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 			0, // accept any amount of ETH
 			path,
 			address(this),
+			block.timestamp
+		);
+	}
+
+	/**
+	 * @dev Add liquidity to uniswap pool
+	 */
+	function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
+		// approve token transfer to cover all possible scenarios
+		_approve(address(this), address(uniswapV2Router), tokenAmount);
+
+		// add the liquidity
+		uniswapV2Router.addLiquidityETH{ value: ethAmount }(
+			address(this),
+			tokenAmount,
+			0, // slippage is unavoidable
+			0, // slippage is unavoidable
+			owner(),
 			block.timestamp
 		);
 	}
