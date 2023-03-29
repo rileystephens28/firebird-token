@@ -81,6 +81,13 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	}
 
 	/**
+	 * @dev Check if an address is excluded from buy/sell fees
+	 */
+	function isExcludedFromFee(address _address) external view returns (bool) {
+		return _excludedFromFee[_address];
+	}
+
+	/**
 	 * @dev Allow contract owner to update marketing wallet
 	 */
 	function updateWalletMarketing(
