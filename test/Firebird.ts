@@ -9,8 +9,8 @@ function eth(amount: number) {
 
 describe("Firebird Token Contract", function () {
 	const INITIAL_TOKEN_SUPPLY = eth(10000000);
-	const TOKEN_LIQUIDITY = eth(100);
-	const WETH_LIQUIDITY = eth(50);
+	const TOKEN_LIQUIDITY = eth(1000);
+	const WETH_LIQUIDITY = eth(500);
 
 	async function deploy() {
 		// Get list of available accounts
@@ -145,7 +145,7 @@ describe("Firebird Token Contract", function () {
 			router
 				.connect(bob)
 				.swapETHForExactTokens(
-					eth(10),
+					eth(100),
 					[weth9.address, firebird.address],
 					bob.address,
 					constants.MaxUint256,
@@ -154,7 +154,7 @@ describe("Firebird Token Contract", function () {
 		).to.changeTokenBalances(
 			firebird,
 			[bob, firebird, pair],
-			[eth(9.7), eth(0.3), eth(10).mul(-1)]
+			[eth(97), eth(3), eth(100).mul(-1)]
 		);
 	});
 	it("should tax on sell", async function () {
@@ -171,7 +171,7 @@ describe("Firebird Token Contract", function () {
 			router
 				.connect(bob)
 				.swapExactTokensForETHSupportingFeeOnTransferTokens(
-					eth(10),
+					eth(100),
 					1,
 					[firebird.address, weth9.address],
 					bob.address,
@@ -180,7 +180,7 @@ describe("Firebird Token Contract", function () {
 		).to.changeTokenBalances(
 			firebird,
 			[bob, firebird, pair],
-			[eth(10).mul(-1), eth(0.3), eth(9.7)]
+			[eth(100).mul(-1), eth(3), eth(97)]
 		);
 	});
 	it("shouldn't tax on transfer", async function () {
