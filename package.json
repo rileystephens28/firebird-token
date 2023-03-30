@@ -10,6 +10,7 @@
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@onmychain/hardhat-uniswap-v2-deploy-plugin": "^1.0.4",
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.15.11",
