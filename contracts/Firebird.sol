@@ -23,16 +23,17 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 
 	// Tracks addresses that are excluded from buy/sell fees
 	mapping(address => bool) private _excludedFromFee;
-	uint256 public _tokenThreshold;
-	bool inSwapAndLiquify;
+	uint256 private _tokenThreshold;
+	bool private _inSwapAndLiquify;
+	bool private _sendFeeEnabled;
 
 	IUniswapV2Router02 public uniswapV2Router;
 	address public uniswapV2Pair;
 
 	modifier lockSwap() {
-		inSwapAndLiquify = true;
+		_inSwapAndLiquify = true;
 		_;
-		inSwapAndLiquify = false;
+		_inSwapAndLiquify = false;
 	}
 
 	constructor(
@@ -81,10 +82,35 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	}
 
 	/**
+	 * @dev Check if buy/sell fees are enabled
+	 */
+	function isSendFeeEnabled() external view returns (bool) {
+		return _sendFeeEnabled;
+	}
+
+	/**
 	 * @dev Check if an address is excluded from buy/sell fees
+	 * @param _address Address to check
 	 */
 	function isExcludedFromFee(address _address) external view returns (bool) {
 		return _excludedFromFee[_address];
+	}
+
+	/**
+	 * @dev Exclude or include an account from buy/sell fees
+	 */
+	function setExcludedFromFee(
+		address account,
+		bool excluded
+	) external onlyOwner {
+		_excludedFromFee[account] = excluded;
+	}
+
+	/**
+	 * @dev Set whether buy/sell fees are enabled
+	 */
+	function setFeeEnabled(bool enabled) external onlyOwner {
+		_sendFeeEnabled = enabled;
 	}
 
 	/**
@@ -104,16 +130,6 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	}
 
 	/**
-	 * @dev Exclude or include an account from buy/sell fees
-	 */
-	function setExcludedFromFee(
-		address account,
-		bool excluded
-	) external onlyOwner {
-		_excludedFromFee[account] = excluded;
-	}
-
-	/**
 	 * @dev Override ERC20 transfer function to apply buy/sell taxes
 	 */
 	function _transfer(
@@ -123,10 +139,18 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	) internal override {
 		require(_from != address(0), "ERC20: transfer from the zero address");
 		require(_to != address(0), "ERC20: transfer to the zero address");
-		require(_amount > 0, "Transfer amount must be greater than zero");
+		require(
+			_amount > 0,
+			"ERC20: Transfer amount must be greater than zero"
+		);
 
 		bool overThreshold = balanceOf(address(this)) >= _tokenThreshold;
-		if (overThreshold && !inSwapAndLiquify && _from != uniswapV2Pair) {
+		if (
+			overThreshold &&
+			_sendFeeEnabled &&
+			!_inSwapAndLiquify &&
+			_from != uniswapV2Pair
+		) {
 			swapAndSendFees();
 		}
 
