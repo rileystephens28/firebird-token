@@ -23,7 +23,7 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 
 	// Tracks addresses that are excluded from buy/sell fees
 	mapping(address => bool) private _excludedFromFee;
-	uint256 private _tokenThreshold;
+	uint256 private _feeDispersionThreshold;
 	bool private _inSwapAndLiquify;
 	bool private _sendFeeEnabled;
 
@@ -100,17 +100,17 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	 * @dev Exclude or include an account from buy/sell fees
 	 */
 	function setExcludedFromFee(
-		address account,
-		bool excluded
+		address _account,
+		bool _excluded
 	) external onlyOwner {
-		_excludedFromFee[account] = excluded;
+		_excludedFromFee[_account] = _excluded;
 	}
 
 	/**
 	 * @dev Set whether buy/sell fees are enabled
 	 */
-	function setFeeEnabled(bool enabled) external onlyOwner {
-		_sendFeeEnabled = enabled;
+	function setFeeEnabled(bool _enabled) external onlyOwner {
+		_sendFeeEnabled = _enabled;
 	}
 
 	/**
@@ -130,6 +130,22 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	}
 
 	/**
+	 * @dev Allow contract owner to update token threshold
+	 */
+	function updateFeeDispersionThreshold(
+		uint256 _threshold
+	) external onlyOwner {
+		_feeDispersionThreshold = _threshold;
+	}
+
+	/**
+	 * @dev Allow contract owner to manually trigger fee dispersion
+	 */
+	function manualFeeDispersion() external onlyOwner {
+		_swapAndSendFees();
+	}
+
+	/**
 	 * @dev Override ERC20 transfer function to apply buy/sell taxes
 	 */
 	function _transfer(
@@ -144,14 +160,15 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 			"ERC20: Transfer amount must be greater than zero"
 		);
 
-		bool overThreshold = balanceOf(address(this)) >= _tokenThreshold;
+		bool overThreshold = balanceOf(address(this)) >=
+			_feeDispersionThreshold;
 		if (
 			overThreshold &&
 			_sendFeeEnabled &&
 			!_inSwapAndLiquify &&
 			_from != uniswapV2Pair
 		) {
-			swapAndSendFees();
+			_swapAndSendFees();
 		}
 
 		bool takeFee = true;
@@ -174,13 +191,12 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 		super._transfer(_from, _to, finalTransferAmount);
 	}
 
-	function swapAndSendFees() private lockSwap {
+	function _swapAndSendFees() private lockSwap {
 		uint256 contractTokenBalance = balanceOf(address(this));
-		require(contractTokenBalance > _tokenThreshold);
 		uint256 thirdTokenBalance = contractTokenBalance / 3;
 
 		// Swap a 1/3 of tokens for LINK and send to oracle wallet
-		swapTokensForLink(thirdTokenBalance);
+		_swapTokensForLink(thirdTokenBalance);
 		IERC20 link = IERC20(getLinkAddress());
 		uint256 linkBalance = link.balanceOf(address(this));
 		link.transfer(oracleWallet, linkBalance);
@@ -189,20 +205,20 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 
 		// Swap 3/4 tokens to ETH
 		uint256 tokensToSwapToEth = (contractTokenBalance / 4) * 3;
-		swapTokensForEth(tokensToSwapToEth);
+		_swapTokensForEth(tokensToSwapToEth);
 
 		// Send to 2/3 of ETH to marketing wallet
 		uint256 marketingEthToTransfer = (address(this).balance / 3) * 2;
 		payable(marketingWallet).transfer(marketingEthToTransfer);
 
 		// Add remaining token and ETH balance to uniswap liquidity
-		addLiquidity(balanceOf(address(this)), address(this).balance);
+		_addLiquidity(balanceOf(address(this)), address(this).balance);
 	}
 
 	/**
 	 * @dev Swap tokens for LINK
 	 */
-	function swapTokensForLink(uint256 _tokenAmount) private {
+	function _swapTokensForLink(uint256 _tokenAmount) private {
 		// generate the uniswap pair path of token -> WETH -> LINK
 		address[] memory path = new address[](3);
 		path[0] = address(this);
@@ -224,7 +240,7 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	/**
 	 * @dev Swap tokens for ETH
 	 */
-	function swapTokensForEth(uint256 _tokenAmount) private {
+	function _swapTokensForEth(uint256 _tokenAmount) private {
 		// generate the uniswap pair path of token -> WETH
 		address[] memory path = new address[](2);
 		path[0] = address(this);
@@ -245,7 +261,7 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	/**
 	 * @dev Add liquidity to uniswap pool
 	 */
-	function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
+	function _addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
 		// approve token transfer to cover all possible scenarios
 		_approve(address(this), address(uniswapV2Router), tokenAmount);
 
