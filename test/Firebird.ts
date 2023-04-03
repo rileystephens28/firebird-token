@@ -100,7 +100,7 @@ describe("Firebird Token Contract", function () {
 		expect(decimals).to.equal(18);
 	});
 
-	it("should mint intial supply to owner", async function () {
+	it("should mint initial supply to owner", async function () {
 		const { firebird, owner } = await loadFixture(deploy);
 		const expectedBalance = INITIAL_TOKEN_SUPPLY.sub(TOKEN_LIQUIDITY);
 		expect((await firebird.balanceOf(owner.address)).toString()).to.equal(
@@ -115,11 +115,40 @@ describe("Firebird Token Contract", function () {
 		expect(newMarketingWallet).to.equal(bob.address);
 	});
 
+	it("should revert when non-owner updates marketing wallet", async function () {
+		const { firebird, alice } = await loadFixture(deploy);
+		await expect(
+			firebird.connect(alice).updateWalletMarketing(alice.address)
+		).to.be.revertedWith("Ownable: caller is not the owner");
+	});
+
 	it("should update oracle wallet", async function () {
 		const { firebird, bob } = await loadFixture(deploy);
 		await firebird.updateWalletOracle(bob.address);
 		const newOracleWallet = await firebird.oracleWallet();
 		expect(newOracleWallet).to.equal(bob.address);
+	});
+
+	it("should revert when non-owner updates oracle wallet", async function () {
+		const { firebird, alice } = await loadFixture(deploy);
+		await expect(
+			firebird.connect(alice).updateWalletOracle(alice.address)
+		).to.be.revertedWith("Ownable: caller is not the owner");
+	});
+
+	it("should update fee dispersion threshold", async function () {
+		const { firebird } = await loadFixture(deploy);
+		await firebird.updateFeeDispersionThreshold(eth(2));
+		const newFeeDispersionThreshold =
+			await firebird.feeDispersionThreshold();
+		expect(newFeeDispersionThreshold).to.equal(eth(2));
+	});
+
+	it("should revert when non-owner updates fee dispersion threshold", async function () {
+		const { firebird, alice } = await loadFixture(deploy);
+		await expect(
+			firebird.connect(alice).updateFeeDispersionThreshold(eth(2))
+		).to.be.revertedWith("Ownable: caller is not the owner");
 	});
 
 	it("should exclude and include an account from fees", async function () {
@@ -140,7 +169,7 @@ describe("Firebird Token Contract", function () {
 			deploy
 		);
 
-		// Expect bob to receive 9.7 FBRD, firebird contract to receive 0.3 FBRD and pair to lose 10 WETH
+		// Expect bob to receive 97 FBRD, firebird contract to receive 3 FBRD and pair to lose 10 WETH
 		await expect(
 			router
 				.connect(bob)
