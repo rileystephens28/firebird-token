@@ -17,13 +17,15 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	uint256 public immutable liquidityFee = 10;
 	uint256 public immutable oracleFee = 10;
 
+	// Tax Thresholds
+	uint256 public feeDispersionThreshold;
+
 	// Tax Wallets
 	address public marketingWallet;
 	address public oracleWallet;
 
 	// Tracks addresses that are excluded from buy/sell fees
 	mapping(address => bool) private _excludedFromFee;
-	uint256 private _feeDispersionThreshold;
 	bool private _inSwapAndLiquify;
 	bool private _sendFeeEnabled;
 
@@ -135,7 +137,7 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	function updateFeeDispersionThreshold(
 		uint256 _threshold
 	) external onlyOwner {
-		_feeDispersionThreshold = _threshold;
+		feeDispersionThreshold = _threshold;
 	}
 
 	/**
@@ -160,8 +162,7 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 			"ERC20: Transfer amount must be greater than zero"
 		);
 
-		bool overThreshold = balanceOf(address(this)) >=
-			_feeDispersionThreshold;
+		bool overThreshold = balanceOf(address(this)) >= feeDispersionThreshold;
 		if (
 			overThreshold &&
 			_sendFeeEnabled &&
