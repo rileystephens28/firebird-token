@@ -11,6 +11,7 @@ import "./TwitterClient.sol";
 
 contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 	uint256 public constant MAX_BURN_LIMIT = 100000; // 1% of total supply
+	uint256 public tweetBurnMultiplier = 10; // 10 tokens burned per tweet
 
 	// Tax Percentages
 	uint256 public immutable marketingFee = 10;
@@ -138,6 +139,15 @@ contract Firebird is ERC20, Ownable, ERC20Burnable, TwitterClient {
 		uint256 _threshold
 	) external onlyOwner {
 		feeDispersionThreshold = _threshold;
+	}
+
+	/**
+	 * @dev Allow contract owner to update tweet burn multiplier
+	 */
+	function updateTweetBurnMultiplier(
+		uint256 _tweetBurnMultiplier
+	) external onlyOwner {
+		tweetBurnMultiplier = _tweetBurnMultiplier;
 	}
 
 	/**

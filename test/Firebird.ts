@@ -151,6 +151,20 @@ describe("Firebird Token Contract", function () {
 		).to.be.revertedWith("Ownable: caller is not the owner");
 	});
 
+	it("should update tweet burn multiplier", async function () {
+		const { firebird } = await loadFixture(deploy);
+		await firebird.updateTweetBurnMultiplier(20);
+		const newTweetBurnMultiplier = await firebird.tweetBurnMultiplier();
+		expect(newTweetBurnMultiplier).to.equal(20);
+	});
+
+	it("should revert when non-owner updates tweet burn multiplier", async function () {
+		const { firebird, alice } = await loadFixture(deploy);
+		await expect(
+			firebird.connect(alice).updateTweetBurnMultiplier(20)
+		).to.be.revertedWith("Ownable: caller is not the owner");
+	});
+
 	it("should exclude and include an account from fees", async function () {
 		const { firebird, alice } = await loadFixture(deploy);
 		// Exclude account
